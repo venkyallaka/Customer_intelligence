@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Organization Intelligence</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #212121; color: #ececec; }
+    .app { display: grid; grid-template-columns: 278px minmax(0, 1fr); min-height: 100vh; }
+    aside { background: #171717; padding: 12px; border-right: 1px solid #2d2d2d; display: flex; flex-direction: column; gap: 18px; }
+    .new-chat { appearance: none; width: 100%; color: #f5f5f5; border: 1px solid #454545; border-radius: 9px; background: transparent; padding: 12px; font: inherit; text-align: left; cursor: pointer; }
+    .new-chat:hover { background: #282828; }
+    .side-title { font-size: 12px; font-weight: 650; color: #a3a3a3; margin: 4px 8px 8px; text-transform: uppercase; letter-spacing: .08em; }
+    .history { display: grid; gap: 3px; max-height: 32vh; overflow-y: auto; padding-right: 2px; }
+    .history-item { width: 100%; border: 0; border-radius: 8px; background: transparent; color: #d9d9d9; cursor: pointer; padding: 9px 10px; text-align: left; font: 13px/1.3 inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-item:hover, .history-item.active { background: #2f2f2f; color: #fff; }
+    .usecases { display: grid; gap: 4px; }
+    .usecase { width: 100%; appearance: none; border: 0; border-radius: 8px; background: transparent; color: #d9d9d9; cursor: pointer; text-align: left; padding: 10px 11px; font: inherit; line-height: 1.3; }
+    .usecase:hover, .usecase.active { background: #2f2f2f; color: #fff; }
+    .usecase span { display: block; font-size: 12px; color: #969696; margin-top: 3px; }
+    .privacy { margin-top: auto; padding: 10px 8px; color: #969696; font-size: 12px; line-height: 1.45; }
+    main { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar { height: 56px; display: flex; align-items: center; padding: 0 24px; font-weight: 650; }
+    .topbar select { margin-left: 10px; color: #efefef; background: transparent; border: 0; font: inherit; cursor: pointer; }
+    #chat { width: min(780px, calc(100% - 36px)); margin: 0 auto; padding: 66px 0 160px; flex: 1; }
+    .welcome { text-align: center; padding-top: 17vh; }
+    .welcome h1 { font-size: clamp(26px, 4vw, 38px); margin: 0 0 12px; letter-spacing: -.03em; }
+    .welcome p { margin: 0; color: #a7a7a7; }
+    .message { display: grid; grid-template-columns: 30px 1fr; gap: 14px; margin: 0 0 30px; line-height: 1.65; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 750; }
+    .user .avatar { background: #5f5f5f; }
+    .assistant .avatar { background: #10a37f; }
+    .content { padding-top: 1px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .composer-wrap { position: fixed; bottom: 0; left: 278px; right: 0; padding: 18px 18px 24px; background: linear-gradient(transparent, #212121 25%); }
+    .composer { width: min(780px, 100%); margin: 0 auto; display: flex; align-items: end; gap: 8px; background: #303030; border: 1px solid #424242; border-radius: 24px; padding: 11px 11px 11px 17px; box-shadow: 0 8px 26px rgba(0,0,0,.22); }
+    textarea { flex: 1; min-height: 25px; max-height: 160px; border: 0; outline: 0; resize: none; background: transparent; color: #f5f5f5; font: 16px/1.5 inherit; padding: 0; }
+    textarea::placeholder { color: #aaa; }
+    .send { width: 32px; height: 32px; border: 0; border-radius: 50%; background: #ececec; color: #242424; font-weight: bold; cursor: pointer; }
+    .send:disabled { opacity: .4; cursor: default; }
+    .hint { width: min(780px, 100%); margin: 10px auto 0; text-align: center; color: #858585; font-size: 11px; }
+    @media (max-width: 700px) { .app { grid-template-columns: 1fr; } aside { display: none; } .composer-wrap { left: 0; } #chat { padding-top: 30px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <button class="new-chat" id="new-chat">＋ New chat</button>
+      <div>
+        <div class="side-title">Chats</div>
+        <div class="history" id="history"></div>
+      </div>
+      <div class="privacy">Answers are grounded in organization-wide automotive intelligence.</div>
+    </aside>
+    <main>
+      <div class="topbar">Organization Intelligence</div>
+      <div id="chat"><div class="welcome"><h1>How can I help?</h1><p>Choose an intelligence model and ask about your organization.</p></div></div>
+    </main>
+  </div>
+  <div class="composer-wrap">
+    <div class="composer"><textarea id="question" rows="1" placeholder="Ask about your organization…"></textarea><button class="send" id="ask" aria-label="Send message">↑</button></div>
+    <div class="hint">Responses are generated through the configured LLM API key.</div>
+  </div>
+  <script>
+    const chat = document.getElementById('chat');
+    const question = document.getElementById('question');
+    const ask = document.getElementById('ask');
+    const storageKey = 'organization-intelligence-chats';
+    let chats = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    let activeChatId = null;
+    const apiBase = 'http://127.0.0.1:8000';
+    function saveChats() { localStorage.setItem(storageKey, JSON.stringify(chats)); }
+    function newChat() {
+      const chatData = { id: crypto.randomUUID(), title: 'New organization chat', messages: [] };
+      chats.unshift(chatData); activeChatId = chatData.id; saveChats(); renderHistory(); renderChat();
+    }
+    function activeChat() { return chats.find(item => item.id === activeChatId); }
+    function renderHistory() {
+      const history = document.getElementById('history'); history.innerHTML = '';
+      chats.forEach(item => {
+        const button = document.createElement('button'); button.className = `history-item${item.id === activeChatId ? ' active' : ''}`;
+        button.textContent = item.title; button.onclick = () => { activeChatId = item.id; renderHistory(); renderChat(); };
+        history.appendChild(button);
+      });
+    }
+    function renderChat() {
+      const current = activeChat(); chat.innerHTML = '';
+      if (!current || !current.messages.length) {
+        chat.innerHTML = '<div class="welcome"><h1>How can I help?</h1><p>Choose an intelligence model and ask about your organization.</p></div>';
+      } else {
+        current.messages.forEach(message => addMessage(message.text, message.role, false));
+      }
+    }
+    function addMessage(text, role) {
+      const shouldPersist = arguments.length < 3 || arguments[2] !== false;
+      chat.querySelector('.welcome')?.remove();
+      const item = document.createElement('div'); item.className = `message ${role}`;
+      item.innerHTML = `<div class="avatar">${role === 'user' ? 'You' : 'AI'}</div><div class="content"></div>`;
+      item.querySelector('.content').textContent = text;
+      chat.appendChild(item);
+      if (shouldPersist) { const current = activeChat(); current.messages.push({text, role}); if (role === 'user' && current.messages.length === 1) current.title = text.slice(0, 38); saveChats(); renderHistory(); }
+      window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+      return item.querySelector('.content');
+    }
+    async function send() {
+      const text = question.value.trim(); if (!text || ask.disabled) return;
+      if (!activeChatId) newChat();
+      const history = activeChat().messages.slice(-8).map(message => ({
+        role: message.role === 'assistant' ? 'assistant' : 'user',
+        content: message.text
+      }));
+      addMessage(text, 'user'); question.value = ''; question.style.height = 'auto'; ask.disabled = true;
+      const output = addMessage('Thinking…', 'assistant');
+      try {
+        let response;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            response = await fetch(apiBase + '/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text, history}) });
+            break;
+          } catch (error) {
+            if (attempt === 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1200));
+          }
+        }
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Unable to answer the question.');
+        output.textContent = data.answer;
+        activeChat().messages[activeChat().messages.length - 1].text = data.answer; saveChats();
+      } catch (error) { output.textContent = error.message || 'The LLM service is unavailable. Please wait a moment and try again.'; activeChat().messages[activeChat().messages.length - 1].text = output.textContent; saveChats(); }
+      finally { ask.disabled = false; question.focus(); }
+    }
+    document.getElementById('new-chat').onclick = () => { newChat(); question.focus(); };
+    ask.onclick = send;
+    question.onkeydown = event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send(); } };
+    question.oninput = () => { question.style.height = 'auto'; question.style.height = Math.min(question.scrollHeight, 160) + 'px'; };
+    if (chats.length) { activeChatId = chats[0].id; } else { newChat(); }
+    renderHistory(); renderChat();
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "rows_used": 1557845,
+  "model_family": "sklearn",
+  "targets": {
+    "purchase_sales": {
+      "accuracy": 0.9991494660893735,
+      "f1": 0.999191710919223,
+      "roc_auc": 0.9999944188373857,
+      "positive_rate": 0.5264554560947976
+    },
+    "retention_service": {
+      "accuracy": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "positive_rate": 0.2634042539533779
+    },
+    "value_financial": {
+      "accuracy": 0.9976891154126374,
+      "f1": 0.9961522429217302,
+      "roc_auc": 0.9999861546887439,
+      "positive_rate": 0.30000353051811957
+    },
+    "engagement_marketing": {
+      "accuracy": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "positive_rate": 0.44037051182884046
+    }
+  }
+}
