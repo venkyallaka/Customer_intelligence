@@ -69,7 +69,7 @@
     const storageKey = 'organization-intelligence-chats';
     let chats = JSON.parse(localStorage.getItem(storageKey) || '[]');
     let activeChatId = null;
-    const apiBase = 'http://127.0.0.1:8000';
+    const apiBase = 'https://customer-intelligence-api-3wig.onrender.com/';
     function saveChats() { localStorage.setItem(storageKey, JSON.stringify(chats)); }
     function newChat() {
       const chatData = { id: crypto.randomUUID(), title: 'New organization chat', messages: [] };
