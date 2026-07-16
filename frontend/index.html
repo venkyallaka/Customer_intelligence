@@ -69,7 +69,7 @@
     const storageKey = 'organization-intelligence-chats';
     let chats = JSON.parse(localStorage.getItem(storageKey) || '[]');
     let activeChatId = null;
-    const apiBase = 'https://customer-intelligence-api-3wig.onrender.com/';
+    const apiBase = 'https://customer-intelligence-api-3wig.onrender.com';
     function saveChats() { localStorage.setItem(storageKey, JSON.stringify(chats)); }
     function newChat() {
       const chatData = { id: crypto.randomUUID(), title: 'New organization chat', messages: [] };
@@ -116,7 +116,7 @@
         let response;
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            response = await fetch(apiBase + 'chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text, history}) });
+            response = await fetch(apiBase + '/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text, history}) });
             break;
           } catch (error) {
             if (attempt === 1) throw error;
