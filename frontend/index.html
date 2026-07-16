@@ -116,7 +116,7 @@
         let response;
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
-            response = await fetch(apiBase + '/chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text, history}) });
+            response = await fetch(apiBase + 'chat', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text, history}) });
             break;
           } catch (error) {
             if (attempt === 1) throw error;
